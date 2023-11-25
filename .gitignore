@@ -1,0 +1,49 @@
+./codeSandbox/codeEnv
+
+# Compiled class file
+*.class
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# Intellij
+*.ipr
+*.iml
+*.iws
+.idea/
+
+# Maven
+target/
+
+# Gradle
+build
+.gradle
+
+# Log file
+*.log
+log/
+
+# out
+**/out/
+
+# Mac
+.DS_Store
+
+# others
+*.jar
+*.war
+*.zip
+*.tar
+*.tar.gz
+*.pid
+*.orig
+temp/
+./backend/yibi-backend/.idea
+./backend/yibi-backend/doc
+./backend/yibi-backend/target
+./backend/yibi-backend/.mvn
+./backend/src/main/resources/application.yml
+./frontend/yibi-frontend/node_modules
+./frontend/yibi-frontend/.idea
