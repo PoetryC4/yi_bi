@@ -1,10 +1,12 @@
 package com.yibi.backend.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.yibi.backend.model.dto.chatglm.ChatHistory;
 import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 用户
@@ -28,9 +30,9 @@ public class Chart implements Serializable {
     private String goal;
 
     /**
-     * 输入图表数据
+     * 标题
      */
-    private String chartData;
+    private String title;
 
     /**
      * 图表类型
@@ -45,7 +47,12 @@ public class Chart implements Serializable {
     /**
      * 生成图表
      */
-    private String genChart;
+    private String genCode;
+
+    /**
+     * 历史
+     */
+    private List<ChatHistory> chatHistoryList;
 
     /**
      * 创建用户

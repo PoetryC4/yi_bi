@@ -33,9 +33,9 @@ public class ChartVO implements Serializable {
     private String goal;
 
     /**
-     * 输入图表数据
+     * 标题
      */
-    private String chartData;
+    private String title;
 
     /**
      * 图表类型
@@ -48,9 +48,9 @@ public class ChartVO implements Serializable {
     private String genText;
 
     /**
-     * 生成图表
+     * 生成图表代码
      */
-    private String genChart;
+    private String genCode;
 
     /**
      * 创建用户 id
@@ -71,16 +71,6 @@ public class ChartVO implements Serializable {
      * 创建人信息
      */
     private UserVO user;
-
-    /**
-     * 是否已点赞
-     */
-    private Boolean hasThumb;
-
-    /**
-     * 是否已收藏
-     */
-    private Boolean hasFavour;
 
     /**
      * 包装类转对象

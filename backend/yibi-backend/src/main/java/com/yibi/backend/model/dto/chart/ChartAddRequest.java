@@ -15,14 +15,14 @@ import java.util.List;
 public class ChartAddRequest implements Serializable {
 
     /**
+     * 标题
+     */
+    private String title;
+
+    /**
      * 目标
      */
     private String goal;
-
-    /**
-     * 输入图表数据
-     */
-    private String chartData;
 
     /**
      * 图表类型

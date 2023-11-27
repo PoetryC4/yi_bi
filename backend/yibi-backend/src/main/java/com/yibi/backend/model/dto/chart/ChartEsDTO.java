@@ -42,10 +42,10 @@ public class ChartEsDTO implements Serializable {
     private String goal;
 
     /**
-     * 输入图表数据
+     * 标题
      */
     @Field(type = FieldType.Text)
-    private String chartData;
+    private String title;
 
     /**
      * 图表类型

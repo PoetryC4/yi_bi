@@ -47,3 +47,4 @@ temp/
 ./backend/src/main/resources/application.yml
 ./frontend/yibi-frontend/node_modules
 ./frontend/yibi-frontend/.idea
+./api_key/.idea

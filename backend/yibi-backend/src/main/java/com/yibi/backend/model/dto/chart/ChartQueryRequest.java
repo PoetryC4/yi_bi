@@ -32,9 +32,9 @@ public class ChartQueryRequest extends PageRequest implements Serializable {
     private String goal;
 
     /**
-     * 输入图表数据
+     * 标题
      */
-    private String chartData;
+    private String title;
 
     /**
      * 图表类型

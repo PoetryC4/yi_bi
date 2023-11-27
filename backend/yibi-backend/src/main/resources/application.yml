@@ -102,3 +102,7 @@ cos:
     secretKey: xxx
     region: xxx
     bucket: xxx
+llm:
+  api-url: http://127.0.0.1:8202/api/veri
+  model-name: chatglm2-6b
+  prompt-name: default
