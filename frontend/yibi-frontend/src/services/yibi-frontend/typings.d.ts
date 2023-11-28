@@ -1,4 +1,10 @@
 declare namespace API {
+  type addChartUsingPOSTParams = {
+    chartType?: string;
+    goal?: string;
+    title?: string;
+  };
+
   type BaseResponseBoolean_ = {
     code?: number;
     data?: boolean;
@@ -77,40 +83,33 @@ declare namespace API {
     message?: string;
   };
 
-  type ChartAddRequest = {
-    chartData?: string;
-    chartType?: string;
-    goal?: string;
-  };
-
   type ChartEditRequest = {
-    chartData?: string;
     chartType?: string;
     genChart?: string;
     genText?: string;
     goal?: string;
     id?: string;
+    title?: string;
   };
 
   type ChartUpdateRequest = {
-    chartData?: string;
     chartType?: string;
     genChart?: string;
     genText?: string;
     goal?: string;
     id?: string;
+    title?: string;
   };
 
   type ChartVO = {
-    chartData?: string;
     chartType?: string;
     createTime?: string;
-    genChart?: string;
+    genCode?: string;
     genText?: string;
     goal?: string;
-    hasFavour?: boolean;
-    hasThumb?: boolean;
     id?: string;
+    isFinished?: number;
+    title?: string;
     updateTime?: string;
     user?: UserVO;
     userId?: string;
@@ -294,7 +293,6 @@ declare namespace API {
   };
 
   type sendVerifyCodeUsingGETParams = {
-    /** userEmail */
     userEmail?: string;
   };
 

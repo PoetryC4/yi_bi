@@ -1,262 +1,114 @@
-import Footer from '@/components/Footer';
-import {login} from '@/services/ant-design-pro/api';
-import {
-  AlipayCircleOutlined,
-  LockOutlined,
-  TaobaoCircleOutlined,
-  UserOutlined,
-  WeiboCircleOutlined,
-  MailOutlined
-} from '@ant-design/icons';
-import {LoginForm, ProFormCaptcha, ProFormCheckbox, ProFormText,} from '@ant-design/pro-components';
-import {useEmotionCss} from '@ant-design/use-emotion-css';
-import {Helmet, history, useModel} from '@umijs/max';
-import {Alert, message, Tabs} from 'antd';
-import React, {useEffect, useState} from 'react';
-import {flushSync} from 'react-dom';
-import Settings from '../../../../config/defaultSettings';
-import {listObjectByPageUsingPost} from "@/services/yibi-frontend/searchController";
-import {Link} from "umi";
-import {getLoginUserUsingGet, userLoginUsingPost} from "@/services/yibi-frontend/userController";
+import { getChartVoByIdUsingGet } from '@/services/yibi-frontend/chartController';
+import { useModel } from '@@/exports';
+import { DotChartOutlined } from '@ant-design/icons';
+import { useEmotionCss } from '@ant-design/use-emotion-css';
+import { sleep } from '@antfu/utils';
+import { history } from '@umijs/max';
+import { Col, message, Row, Skeleton } from 'antd';
+import Title from 'antd/es/typography/Title';
+import Paragraph from 'antd/lib/typography/Paragraph';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router';
 
-const LoginMessage: React.FC<{
-  content: string;
-}> = ({ content }) => {
-  return (
-    <Alert
-      style={{
-        marginBottom: 24,
-      }}
-      message={content}
-      type="error"
-      showIcon
-    />
-  );
-};
-const Login: React.FC = () => {
-  const [userLoginState, setUserLoginState] = useState<API.LoginResult>({});
-  const [type, setType] = useState<string>('account');
+const ChartResult: React.FC = () => {
   const { initialState, setInitialState } = useModel('@@initialState');
-  const containerClassName = useEmotionCss(() => {
+  const chartResultClass = useEmotionCss(() => {
     return {
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
       overflow: 'auto',
+      height: '100vh',
       backgroundImage:
         "url('https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/V-_oS6r-i7wAAAAAAAAAAAAAFl94AQBr')",
       backgroundSize: '100% 100%',
+      backgroundColor: '#fafafa',
     };
   });
 
-  const fetchUserInfo = async () => {
-    // const userInfo = await initialState?.fetchUserInfo?.();
-    const res = await getLoginUserUsingGet();
+  const { id } = useParams();
+
+  const [loading, setLoading] = useState(false);
+  const [chartVals, setChartVals] = useState();
+  const [isFinished, setIsFinished] = useState();
+
+  const { currentUser } = initialState;
+
+  const tryGetChart = async () => {
+    let res = await getChartVoByIdUsingGet({
+      id: id,
+    });
     if (res.code === 0) {
-      flushSync(() => {
-        setInitialState((s) => ({
-          ...s,
-          currentUser: res.data,
-        }));
-      });
+      if (res.data.isFinished === 1) {
+        if (currentUser.id !== res.data.userId) {
+          message.error('你不得查看他人的结果');
+          history.back();
+          return;
+        }
+        setIsFinished(0);
+        setLoading(false);
+        setChartVals(res.data);
+        return;
+      } else {
+        await sleep(3000);
+        if(!isFinished) {
+          await tryGetChart();
+        }
+        return;
+      }
     } else {
       message.error(res.message);
     }
   };
-  const handleSubmit = async (values: API.UserLoginRequest) => {
-    try {
-      // 登录
-      const res = await userLoginUsingPost({
-        ...values,
-        userEmail: "",
-        isEmail: false,
-      });
-      if (res.code === 0) {
-        const defaultLoginSuccessMessage = '登录成功！';
-        message.success(defaultLoginSuccessMessage);
-        await fetchUserInfo();
-        const urlParams = new URL(window.location.href).searchParams;
-        history.push(urlParams.get('redirect') || '/');
-        return;
-      } else {
-        message.error(res.message);
-      }
-    } catch (error) {
-      const defaultLoginFailureMessage = '登录失败，请重试！';
-      console.log(error);
-      message.error(defaultLoginFailureMessage);
-    }
-  };
-  const { status, type: loginType } = userLoginState;
+
+  useEffect(() => {
+    tryGetChart();
+  }, []); // 在组件挂载时执行一次
+
+  if (!initialState) {
+    return loading;
+  }
+
+  if (!currentUser) {
+    history.push(`/user/login?redirect=/chart/result/${id}`);
+    return undefined;
+  }
+
   return (
-    <div className={containerClassName}>
-      <Helmet>
-        <title>
-          {'登录'}- {Settings.title}
-        </title>
-      </Helmet>
-      <Lang />
-      <div
-        style={{
-          flex: '1',
-          padding: '32px 0',
-        }}
-      >
-        <LoginForm
-          contentStyle={{
-            minWidth: 280,
-            maxWidth: '75vw',
-          }}
-          logo={<img alt="logo" src="/logo.svg" />}
-          title="翼 BI"
-          // subTitle={'Ant Design 是西湖区最具影响力的 Web 设计规范'}
-          initialValues={{
-            autoLogin: true,
-          }}
-          /*actions={['其他登录方式 :', <ActionIcons key="icons" />]}*/
-          onFinish={async (values) => {
-            await handleSubmit(values as API.UserLoginRequest);
-          }}
-        >
-          <Tabs
-            activeKey={type}
-            onChange={setType}
-            centered
-            items={[
-              {
-                key: 'account',
-                label: '账户密码登录',
-              },/*
-              {
-                key: 'email',
-                label: '邮箱登录',
-              },*/
-            ]}
-          />
+    <div className={chartResultClass}>
+      {!chartVals ? (
+        <Row>
+          <Col span={10} style={{ fontSize: 40, color: '#bfbfbf' }}>
+            <Skeleton.Input active={true} size={'large'} />
+            <br />
+            <Skeleton.Input active={true} size={'default'} />
+            <br />
+            <Skeleton paragraph={{ rows: 4 }} style={{ marginTop: 60 }} />
+          </Col>
+          <Col span={14} style={{ fontSize: 40, color: '#bfbfbf' }}>
+            <Skeleton.Node active>
+              <DotChartOutlined style={{ fontSize: 40, color: '#bfbfbf' }} />
+            </Skeleton.Node>
+            <Skeleton paragraph={{ rows: 5 }} style={{ marginTop: 60 }} />
+          </Col>
+        </Row>
+      ) : (
+        <Row>
+          <Col span={10} style={{ fontSize: 40, color: '#bfbfbf' }}>
+            <Title>{chartVals?.title || 'title'}</Title>
 
-          {status === 'error' && loginType === 'account' && (
-            <LoginMessage content={'错误的用户名和密码(admin/ant.design)'} />
-          )}
-          {type === 'account' && (
-            <>
-              <ProFormText
-                name="userAccount"
-                fieldProps={{
-                  size: 'large',
-                  prefix: <UserOutlined />,
-                }}
-                // placeholder={'用户名: admin or user'}
-                placeholder={'请输入用户名'}
-                rules={[
-                  {
-                    required: true,
-                    message: '用户名是必填项！',
-                  },
-                ]}
-              />
-              <ProFormText.Password
-                name="userPassword"
-                fieldProps={{
-                  size: 'large',
-                  prefix: <LockOutlined />,
-                }}
-                // placeholder={'密码: ant.design'}
-                placeholder={'请输入密码'}
-                rules={[
-                  {
-                    required: true,
-                    message: '密码是必填项！',
-                  },
-                ]}
-              />
-            </>
-          )}
+            <Title level={2}>分析需求</Title>
 
-          {/*{status === 'error' && loginType === 'email' && <LoginMessage content="验证码错误"/>}
-          {type === 'email' && (
-            <>
-              <ProFormText
-                fieldProps={{
-                  size: 'large',
-                  prefix: <MailOutlined/>,
-                }}
-                name="email"
-                placeholder={'请输入邮箱！'}
-                rules={[
-                  {
-                    required: true,
-                    message: '邮箱是必填项！',
-                  },
-                  {
-                    pattern: /^([a-zA-Z0-9_-])+@([a-zA-Z0-9_-])+(\.[a-zA-Z0-9_-])+/,
-                    message: '不合法的邮箱！',
-                  },
-                ]}
-              />
-              <ProFormCaptcha
-                fieldProps={{
-                  size: 'large',
-                  prefix: <LockOutlined/>,
-                }}
-                captchaProps={{
-                  size: 'large',
-                }}
-                placeholder={'请输入验证码！'}
-                captchaTextRender={(timing, count) => {
-                  if (timing) {
-                    return `${count} ${'秒后重新获取'}`;
-                  }
-                  return '获取验证码';
-                }}
-                name="captcha"
-                rules={[
-                  {
-                    required: true,
-                    message: '验证码是必填项！',
-                  },
-                ]}
-                onGetCaptcha={async (phone) => {
-                  const result = await getFakeCaptcha({
-                    phone,
-                  });
-                  if (!result) {
-                    return;
-                  }
-                  message.success('获取验证码成功！验证码为：1234');
-                }}
-              />
-            </>
-          )}*/}
-          <div
-            style={{
-              marginBottom: 24,
-            }}
-          >
-            <ProFormCheckbox noStyle name="autoLogin">
-              自动登录
-            </ProFormCheckbox>
-            <Link
-              style={{
-                float: 'right',
-                marginLeft: 20,
-              }}
-              to="/user/register"
-            >
-              没有账号 ?
-            </Link>
-            <Link
-              style={{
-                float: 'right',
-              }}
-              to="/user/pwdChange"
-            >
-              忘记密码 ?
-            </Link>
-          </div>
-        </LoginForm>
-      </div>
-      <Footer />
+            <Paragraph>{chartVals?.goal || 'goal'}</Paragraph>
+          </Col>
+          <Col span={14} style={{ fontSize: 40, color: '#bfbfbf' }}>
+            <Title level={2}>结果图</Title>
+            <div id="Echarts">{chartVals?.genCode || 'genCode'}</div>
+            <Title level={2}>分析结论</Title>
+            <Paragraph>{chartVals?.genText || 'genText'}</Paragraph>
+          </Col>
+        </Row>
+      )}
     </div>
   );
 };
-export default Login;
+export default ChartResult;

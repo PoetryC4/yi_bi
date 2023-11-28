@@ -52,7 +52,7 @@ public class Chart implements Serializable {
     /**
      * 历史
      */
-    private List<ChatHistory> chatHistoryList;
+    private String chatHistoryList;
 
     /**
      * 创建用户
@@ -69,9 +69,9 @@ public class Chart implements Serializable {
      */
     private Date updateTime;
     /**
-     * 是否为VIP
+     * 是否完成询问AI
      */
-    private Integer isVip;
+    private Integer isFinished;
     /**
      * 是否删除
      */

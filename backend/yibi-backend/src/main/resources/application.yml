@@ -16,6 +16,11 @@ spring:
         smtp:
           socketFactory:
             class: javax.net.ssl.SSLSocketFactory
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
   # 默认 dev 环境
   profiles:
     active: dev

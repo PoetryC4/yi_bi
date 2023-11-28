@@ -1,7 +1,8 @@
 package com.yibi.backend.model.vo;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.yibi.backend.model.dto.chatglm.ChatHistory;
 import com.yibi.backend.model.entity.Chart;
 import com.yibi.backend.model.entity.Post;
 import lombok.Data;
@@ -43,6 +44,11 @@ public class ChartVO implements Serializable {
     private String chartType;
 
     /**
+     * 历史
+     */
+    private List<ChatHistory> chatHistoryList;
+
+    /**
      * 结果文字
      */
     private String genText;
@@ -73,6 +79,11 @@ public class ChartVO implements Serializable {
     private UserVO user;
 
     /**
+     * 是否完成询问AI
+     */
+    private Integer isFinished;
+
+    /**
      * 包装类转对象
      *
      * @param chartVO
@@ -84,6 +95,8 @@ public class ChartVO implements Serializable {
         }
         Chart chart = new Chart();
         BeanUtils.copyProperties(chartVO, chart);
+        List<ChatHistory> chatHistoryList1 = chartVO.getChatHistoryList();
+        chart.setChatHistoryList(GSON.toJson(chatHistoryList1));
         return chart;
     }
 
@@ -99,6 +112,9 @@ public class ChartVO implements Serializable {
         }
         ChartVO chartVO = new ChartVO();
         BeanUtils.copyProperties(chart, chartVO);
+        String chatHistoryList1 = chart.getChatHistoryList();
+        chartVO.setChatHistoryList(GSON.fromJson(chatHistoryList1, new TypeToken<List<ChatHistory>>() {
+        }.getType()));
         return chartVO;
     }
 }

@@ -33,6 +33,11 @@ import java.util.List;
 public class ChatGLMRequest implements Serializable {
 
     /**
+     * 对应的chartId
+     */
+    private Long chartId;
+
+    /**
      * 问题
      */
     private String query;

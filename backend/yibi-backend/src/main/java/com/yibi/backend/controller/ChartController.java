@@ -18,6 +18,7 @@ import com.yibi.backend.model.dto.chatglm.ChatHistory;
 import com.yibi.backend.model.entity.Chart;
 import com.yibi.backend.model.entity.User;
 import com.yibi.backend.model.vo.ChartVO;
+import com.yibi.backend.rabbitmq.MyMessageProducer;
 import com.yibi.backend.service.ChartService;
 import com.yibi.backend.service.ChatGLMService;
 import com.yibi.backend.service.UserService;
@@ -33,6 +34,9 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 
 /**
  * 帖子接口
@@ -44,6 +48,8 @@ import java.util.List;
 @RequestMapping("/chart")
 @Slf4j
 public class ChartController {
+    @Resource
+    private MyMessageProducer myMessageProducer;
 
     @Value("${llm.model-name}")
     private String modelName;
@@ -63,7 +69,7 @@ public class ChartController {
 
     static {
         codeGenHistory = new ArrayList<>();
-        codeGenHistory.add(ChatHistory.builder().role("user").content("你是一个数据分析师和前端开发专家，接下来我会按照以下固定格式给你提供内容，花括号为需要替换的内容:\n分析需求:\n{数据分析的需求或者目标}\n指定结果图表类型:\n{输入的图表类型，若未指定则由你自定义}\n原始数据:\n{csv格式的原始数据，用,作为分隔符}\n请根据这两部分内容，按照以下指定格式生成Echarts V5图标代码(此外不要输出任何多余的开头、结尾、注释，代码前后需要有@MySpace包裹起来)\n@MySpace\n{前端Echarts V5的option配置对象js代码，合理地将数据进行可视化，不要生成任何多余的内容，注释，前置词!!!!}\n@MySpace\n").build());
+        codeGenHistory.add(ChatHistory.builder().role("user").content("你是一个数据分析师和前端开发专家，接下来我会按照以下固定格式给你提供内容，花括号为需要替换的内容:\n分析需求:\n{数据分析的需求或者目标}\n原始数据:\n{csv格式的原始数据，用,作为分隔符}\n请根据这两部分内容，按照以下指定格式生成Echarts V5图标代码(此外不要输出任何多余的开头、结尾、注释，代码前后需要有@MySpace包裹起来)\n@MySpace\n{前端Echarts V5的option配置对象js代码，合理地将数据进行可视化，不要生成任何多余的内容，注释，前置词!!!!}\n@MySpace\n").build());
         codeGenHistory.add(ChatHistory.builder().role("assistant").content("好的").build());
         codeGenHistory.add(ChatHistory.builder().role("user").content("比如以下这个例子:\n分析需求:\n分析网站用户的增长情况原始数据:\n指定结果图表类型:\n任意\n原始数据:\n日期,用户数\n1号,10\n2号,20\n3号,30\n\n针对这个例子，你按照以上样式返回的例子可以如下:\n\n" + "@MySpace\noption = {\n" +
                 "  xAxis:{\n" +
@@ -222,7 +228,7 @@ public class ChartController {
      * @return
      */
     @PostMapping("/add")
-    public BaseResponse<ChartVO> addChart(@RequestPart("file") MultipartFile multipartFile,
+    public BaseResponse<Long> addChart(@RequestPart("file") MultipartFile multipartFile,
                                                       ChartAddRequest chartAddRequest, HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
         if(loginUser== null || loginUser.getId()<0) {
@@ -237,12 +243,23 @@ public class ChartController {
         ThrowUtils.throwIf(!ExcelUtils.isExcelFile(multipartFile), ErrorCode.PARAMS_ERROR, "请传入.xlsx文件");
         ThrowUtils.throwIf(multipartFile.getSize() > 1024 * 1024L, ErrorCode.PARAMS_ERROR, "上传文件不得超过1M");
 
+        Chart chart = new Chart();
+        chart.setGoal(goal);
+        chart.setTitle(title);
+        chart.setChartType(chartType);
+        chart.setIsFinished(0);
+        chart.setUserId(loginUser.getId());
+        boolean save = chartService.save(chart);
+        if(!save) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
         String csvRes = ExcelUtils.getCsvFromXlsx(multipartFile);
 
         ChatGLMRequest chatGLMRequest = new ChatGLMRequest();
 
         String input = String.format(firstQueryTemplate, goal, StringUtils.isEmpty(chartType) ? " " : String.format(chartTypeTemplate, chartType), csvRes);
 
+        chatGLMRequest.setChartId(chart.getId());
         chatGLMRequest.setQuery(input);
         chatGLMRequest.setStream(false);
         chatGLMRequest.setModel_name(modelName);
@@ -254,48 +271,48 @@ public class ChartController {
         // 1. 生成图表代码
         chatGLMRequest.setHistory(chatHistoryList);
 
-        String responseFromGLM1 = chatGLMService.getResponseFromGLM(chatGLMRequest);
+        myMessageProducer.sendMessage("yibi_exchange", "yibi_routingKey", GSON.toJson(chatGLMRequest));
+       /* CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> {
 
-        ChatGLMResponse chatGLMResponse1 = GSON.fromJson(responseFromGLM1, ChatGLMResponse.class);
-        if (chatGLMResponse1.getChat_history_id() == null) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
-        }
+            String responseFromGLM1 = chatGLMService.getResponseFromGLM(chatGLMRequest);
 
-        String[] strings = chatGLMResponse1.getText().split("@MySpace");
-        if (strings.length < 1) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成错误");
-        }
-        String code = strings[strings.length - 1];
+            ChatGLMResponse chatGLMResponse1 = GSON.fromJson(responseFromGLM1, ChatGLMResponse.class);
+            if (chatGLMResponse1.getChat_history_id() == null) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+            }
 
-        chatHistoryList.add(ChatHistory.builder().role("user").content(input).build());
-        chatHistoryList.add(ChatHistory.builder().role("assistant").content("@MySpace\n" + code + "@MySpace\n").build());
-        // 2. 生成结论文字
-        String secondQuery = String.format(secondQueryTemplate, goal);
-        chatGLMRequest.setQuery(secondQuery);
-        chatGLMRequest.setHistory(chatHistoryList);
+            String[] strings = chatGLMResponse1.getText().split("@MySpace");
+            if (strings.length < 1) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成错误");
+            }
+            String code = strings[strings.length - 1];
 
-        String responseFromGLM2 = chatGLMService.getResponseFromGLM(chatGLMRequest);
+            chatHistoryList.add(ChatHistory.builder().role("user").content(input).build());
+            chatHistoryList.add(ChatHistory.builder().role("assistant").content("@MySpace\n" + code + "@MySpace\n").build());
+            // 2. 生成结论文字
+            String secondQuery = String.format(secondQueryTemplate, goal);
+            chatGLMRequest.setQuery(secondQuery);
+            chatGLMRequest.setHistory(chatHistoryList);
 
-        ChatGLMResponse chatGLMResponse2 = GSON.fromJson(responseFromGLM2, ChatGLMResponse.class);
-        if (chatGLMResponse2.getChat_history_id() == null) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
-        }
-        chatHistoryList.add(ChatHistory.builder().role("user").content(secondQuery).build());
-        chatHistoryList.add(ChatHistory.builder().role("assistant").content(chatGLMResponse2.getText()).build());
+            String responseFromGLM2 = chatGLMService.getResponseFromGLM(chatGLMRequest);
 
-        Chart chart = new Chart();
-        chart.setGoal(goal);
-        chart.setTitle(title);
-        chart.setChartType(chartType);
-        chart.setGenText(chatGLMResponse2.getText());
-        chart.setGenCode(code);
-        chart.setChatHistoryList(chatHistoryList);
-        chart.setUserId(loginUser.getId());
-        if(!chartService.save(chart)) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "保存失败");
-        }
-        ChartVO chartVO = chartService.getChartVO(chart, request);
+            ChatGLMResponse chatGLMResponse2 = GSON.fromJson(responseFromGLM2, ChatGLMResponse.class);
+            if (chatGLMResponse2.getChat_history_id() == null) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+            }
+            chatHistoryList.add(ChatHistory.builder().role("user").content(secondQuery).build());
+            chatHistoryList.add(ChatHistory.builder().role("assistant").content(chatGLMResponse2.getText()).build());
 
-        return ResultUtils.success(chartVO);
+            chart.setGenText(chatGLMResponse2.getText());
+            chart.setGenCode(code);
+            chart.setChatHistoryList(chatHistoryList);
+            chart.setUserId(loginUser.getId());
+            chart.setIsFinished(1);
+
+            chartService.updateById(chart);
+            return null; // 返回一个空值，因为异步逻辑不产生结果
+        }, Executors.newCachedThreadPool());
+*/
+        return ResultUtils.success(chart.getId());
     }
 }

@@ -65,7 +65,7 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         String goal = chart.getGoal();
-        String chartData = chart.getChartData();
+        String chartData = chart.getTitle();
         // 创建时，参数不能为空
         if (add) {
             ThrowUtils.throwIf(StringUtils.isAnyBlank(goal, chartData), ErrorCode.PARAMS_ERROR);
@@ -94,7 +94,7 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
         Long id = chartQueryRequest.getId();
         Long userId = chartQueryRequest.getUserId();
         String goal = chartQueryRequest.getGoal();
-        String chartData = chartQueryRequest.getChartData();
+        String chartData = chartQueryRequest.getTitle();
 
         // 拼接查询条件
         if (StringUtils.isNotBlank(searchText)) {
@@ -117,7 +117,7 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
         String searchText = chartQueryRequest.getSearchText();
         Long userId = chartQueryRequest.getUserId();
         String goal = chartQueryRequest.getGoal();
-        String chartData = chartQueryRequest.getChartData();
+        String chartData = chartQueryRequest.getTitle();
 
         // es 起始页为 0
         long current = chartQueryRequest.getCurrent() - 1;
@@ -175,7 +175,7 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
             searchHits.getSearchHits().forEach(searchHit -> {
                 Long chartId = searchHit.getContent().getId();
                 Chart chart = this.baseMapper.selectById(chartId);
-                if(chart == null) {
+                if (chart == null) {
                     // 从 es 清空 db 已物理删除的数据
                     String delete = elasticsearchRestTemplate.delete(String.valueOf(chartId), ChartEsDTO.class);
                     log.info("delete chart {}", delete);
@@ -184,7 +184,7 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
                         chart.setGoal(searchHit.getHighlightFields().get("goal").get(0));
                     }
                     if (searchHit.getHighlightFields().containsKey("chartData")) {
-                        chart.setChartData(searchHit.getHighlightFields().get("chartData").get(0));
+                        chart.setTitle(searchHit.getHighlightFields().get("chartData").get(0));
                     }
                     resourceList.add(chart);
                 }
@@ -206,6 +206,9 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
         }
         UserVO userVO = userService.getUserVO(user);
         chartVO.setUser(userVO);
+        if (!userService.isAdmin(request)) {
+            chartVO.setChatHistoryList(null);
+        }
         // 2. 已登录，获取用户点赞、收藏状态
         User loginUser = userService.getLoginUserPermitNull(request);
         return chartVO;
