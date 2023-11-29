@@ -39,6 +39,11 @@ public class ChartVO implements Serializable {
     private String title;
 
     /**
+     * 图表数据
+     */
+    private String chartData;
+
+    /**
      * 图表类型
      */
     private String chartType;

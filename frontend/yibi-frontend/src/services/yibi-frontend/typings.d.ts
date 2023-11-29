@@ -93,6 +93,7 @@ declare namespace API {
   };
 
   type ChartUpdateRequest = {
+    chartData?: string;
     chartType?: string;
     genChart?: string;
     genText?: string;
@@ -102,7 +103,9 @@ declare namespace API {
   };
 
   type ChartVO = {
+    chartData?: string;
     chartType?: string;
+    chatHistoryList?: ChatHistory[];
     createTime?: string;
     genCode?: string;
     genText?: string;
@@ -113,6 +116,11 @@ declare namespace API {
     updateTime?: string;
     user?: UserVO;
     userId?: string;
+  };
+
+  type ChatHistory = {
+    content?: string;
+    role?: string;
   };
 
   type checkUsingGETParams = {

@@ -96,15 +96,19 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
         String goal = chartQueryRequest.getGoal();
         String chartData = chartQueryRequest.getTitle();
 
+        User user = userService.getById(userId);
+
         // 拼接查询条件
         if (StringUtils.isNotBlank(searchText)) {
-            queryWrapper.like("goal", searchText).or().like("chartData", searchText);
+            queryWrapper.like("goal", searchText).or().like("title", searchText);
         }
         queryWrapper.like(StringUtils.isNotBlank(goal), "goal", goal);
         queryWrapper.like(StringUtils.isNotBlank(chartData), "chartData", chartData);
 
         queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
-        queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
+        if (!userService.isAdmin(user)) {
+            queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
+        }
         queryWrapper.eq("isDelete", false);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
@@ -209,8 +213,9 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
         if (!userService.isAdmin(request)) {
             chartVO.setChatHistoryList(null);
         }
-        // 2. 已登录，获取用户点赞、收藏状态
-        User loginUser = userService.getLoginUserPermitNull(request);
+        if (StringUtils.isEmpty(chartVO.getChartType()) || chartVO.getChartType().length() == 0) {
+            chartVO.setChartType("自定");
+        }
         return chartVO;
     }
 
@@ -236,6 +241,12 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
                 user = userIdUserListMap.get(userId).get(0);
             }
             chartVO.setUser(userService.getUserVO(user));
+            if (!userService.isAdmin(request)) {
+                chartVO.setChatHistoryList(null);
+            }
+            if (StringUtils.isEmpty(chartVO.getChartType()) || chartVO.getChartType().length() == 0) {
+                chartVO.setChartType("自定");
+            }
             return chartVO;
         }).collect(Collectors.toList());
         chartVOPage.setRecords(chartVOList);

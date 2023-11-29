@@ -187,6 +187,13 @@ public class ChartController {
         if (chart == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
+        User loginUser = userService.getLoginUser(request);
+        if(loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        if(!Objects.equals(loginUser.getId(), chart.getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "不可访问他人数据");
+        }
         return ResultUtils.success(chartService.getChartVO(chart, request));
     }
 
@@ -229,9 +236,9 @@ public class ChartController {
      */
     @PostMapping("/add")
     public BaseResponse<Long> addChart(@RequestPart("file") MultipartFile multipartFile,
-                                                      ChartAddRequest chartAddRequest, HttpServletRequest request) {
+                                       ChartAddRequest chartAddRequest, HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
-        if(loginUser== null || loginUser.getId()<0) {
+        if (loginUser == null || loginUser.getId() < 0) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
         }
         String goal = chartAddRequest.getGoal();
@@ -243,17 +250,19 @@ public class ChartController {
         ThrowUtils.throwIf(!ExcelUtils.isExcelFile(multipartFile), ErrorCode.PARAMS_ERROR, "请传入.xlsx文件");
         ThrowUtils.throwIf(multipartFile.getSize() > 1024 * 1024L, ErrorCode.PARAMS_ERROR, "上传文件不得超过1M");
 
+        String csvRes = ExcelUtils.getCsvFromXlsx(multipartFile);
+
         Chart chart = new Chart();
         chart.setGoal(goal);
         chart.setTitle(title);
         chart.setChartType(chartType);
         chart.setIsFinished(0);
         chart.setUserId(loginUser.getId());
+        chart.setChartData(csvRes);
         boolean save = chartService.save(chart);
-        if(!save) {
+        if (!save) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
-        String csvRes = ExcelUtils.getCsvFromXlsx(multipartFile);
 
         ChatGLMRequest chatGLMRequest = new ChatGLMRequest();
 

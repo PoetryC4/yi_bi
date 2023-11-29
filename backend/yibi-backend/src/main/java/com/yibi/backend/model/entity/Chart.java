@@ -40,6 +40,11 @@ public class Chart implements Serializable {
     private String chartType;
 
     /**
+     * 图表数据
+     */
+    private String chartData;
+
+    /**
      * 结果文字
      */
     private String genText;

@@ -1,12 +1,15 @@
-import { options } from '@/components/Entity/Enum/ChartTypeEnum';
-import { addChartUsingPost } from '@/services/yibi-frontend/chartController';
+import { chartTypeOptions } from '@/components/Entity/Enum/ChartTypeEnum';
+import {
+  addChartUsingPost,
+  getChartVoByIdUsingGet,
+} from '@/services/yibi-frontend/chartController';
 import { useModel } from '@@/exports';
 import { UploadOutlined } from '@ant-design/icons';
 import { useEmotionCss } from '@ant-design/use-emotion-css';
+import { history } from '@umijs/max';
 import { Button, Form, Image, Input, message, Select, Upload } from 'antd';
 import Title from 'antd/es/typography/Title';
-import React, { useState } from 'react';
-import { history } from '@umijs/max';
+import React, { useEffect, useState } from 'react';
 
 const layout = {
   labelCol: { span: 8 },
@@ -51,13 +54,40 @@ const ChartAdd: React.FC = () => {
 
   if (!currentUser) {
     history.push('/user/login?redirect=/chart/add');
-    return undefined;
   }
 
   const [form] = Form.useForm();
 
+  useEffect(() => {
+    const urlParams = new URL(window.location.href).searchParams;
+    let copy = urlParams.get('copy');
+    if (copy !== null) {
+      getChartVoByIdUsingGet({ id: copy }).then((res) => {
+        if (res.code === 0) {
+          form.setFieldValue('title', res.data.title);
+          form.setFieldValue('goal', res.data.goal);
+          form.setFieldValue(
+            'chartType',
+            res.data.chartType !== undefined && res.data.chartType !== '自定'
+              ? res.data.chartType
+              : null,
+          );
+        } else {
+          message.error(res.message);
+        }
+      });
+    }
+  });
+
   const onFinish = async (values: any) => {
-    let res = await addChartUsingPost(values, {}, values.file[0]);
+    let res = await addChartUsingPost(
+      {
+        ...values,
+        chartType: values.chartType ? values.chartType : null,
+      },
+      {},
+      values.file[0],
+    );
     if (res.code === 0) {
       history.push(`/chart/result/${res.data}`);
     } else {
@@ -98,11 +128,12 @@ const ChartAdd: React.FC = () => {
         </Title>
       </div>
       <Form
+        labelAlign={'left'}
         {...layout}
         form={form}
         name="nest-messages"
         onFinish={onFinish}
-        style={{ width: 800, inset: 0, margin: '1% auto auto auto' }}
+        style={{ width: 660, inset: 0, margin: '1% auto auto auto' }}
         validateMessages={validateMessages}
       >
         <Form.Item
@@ -121,7 +152,7 @@ const ChartAdd: React.FC = () => {
         </Form.Item>
         <Form.Item name="chartType" label="图表类型">
           <Select placeholder="你期望的图表类型, 不选表示由AI决定" allowClear>
-            {options.map((option) => (
+            {chartTypeOptions.map((option) => (
               <Select.Option key={option.value} value={option.value}>
                 {option.label}
               </Select.Option>
