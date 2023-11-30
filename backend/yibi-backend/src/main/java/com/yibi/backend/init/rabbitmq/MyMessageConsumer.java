@@ -1,4 +1,4 @@
-package com.yibi.backend.rabbitmq;
+package com.yibi.backend.init.rabbitmq;
 
 import com.google.gson.Gson;
 import com.rabbitmq.client.Channel;
@@ -8,6 +8,7 @@ import com.yibi.backend.model.dto.chatglm.ChatGLMRequest;
 import com.yibi.backend.model.dto.chatglm.ChatGLMResponse;
 import com.yibi.backend.model.dto.chatglm.ChatHistory;
 import com.yibi.backend.model.entity.Chart;
+import com.yibi.backend.model.enums.ChartStateEnum;
 import com.yibi.backend.service.ChartService;
 import com.yibi.backend.service.ChatGLMService;
 import lombok.SneakyThrows;
@@ -78,7 +79,7 @@ public class MyMessageConsumer {
         chart.setGenText(chatGLMResponse2.getText());
         chart.setGenCode(code);
         chart.setChatHistoryList(GSON.toJson(chatHistoryList));
-        chart.setIsFinished(1);
+        chart.setIsFinished(ChartStateEnum.CHART_FINISHED.getValue());
 
         chartService.updateById(chart);
     }

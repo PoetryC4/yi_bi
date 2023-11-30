@@ -133,6 +133,12 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
             <version>2.7.2</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.redisson/redisson -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>3.24.3</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -13,9 +13,8 @@ export async function addChartUsingPost(
   const formData = new FormData();
 
   if (file) {
-    formData.append('file', file);
+    formData.append('file', file.originFileObj);
   }
-
   Object.keys(body).forEach((ele) => {
     const item = (body as any)[ele];
 
@@ -31,11 +30,19 @@ export async function addChartUsingPost(
       }
     }
   });
-
+  for (const key in params) {
+    if (params.hasOwnProperty(key)) {
+      // 将属性名和对应的值添加到 formData 中
+      formData.append(key, params[key]);
+    }
+  }
   return request<API.BaseResponseLong_>('/api/chart/add', {
     method: 'POST',
-    params: {
+    /*params: {
       ...params,
+    },*/
+    headers: {
+      'Content-Type': 'multipart/form-data',
     },
     data: formData,
     requestType: 'form',

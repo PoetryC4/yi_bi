@@ -1,4 +1,4 @@
-package com.yibi.backend.rabbitmq;
+package com.yibi.backend.init.rabbitmq;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;

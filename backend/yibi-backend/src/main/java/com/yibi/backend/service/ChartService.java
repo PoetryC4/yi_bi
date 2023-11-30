@@ -10,6 +10,7 @@ import com.yibi.backend.model.entity.Post;
 import com.yibi.backend.model.vo.ChartVO;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * 帖子服务
@@ -60,4 +61,6 @@ public interface ChartService extends IService<Chart> {
      * @return
      */
     Page<ChartVO> getChartVOPage(Page<Chart> chartPage, HttpServletRequest request);
+
+    List<Chart> getChartsFailedAfter(long milli);
 }

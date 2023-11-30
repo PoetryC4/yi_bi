@@ -1,4 +1,4 @@
-package com.yibi.backend.rabbitmq;
+package com.yibi.backend.init.rabbitmq;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;

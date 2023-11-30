@@ -6,9 +6,11 @@ import com.yibi.backend.common.BaseResponse;
 import com.yibi.backend.common.DeleteRequest;
 import com.yibi.backend.common.ErrorCode;
 import com.yibi.backend.common.ResultUtils;
+import com.yibi.backend.config.ThreadPoolConfig;
 import com.yibi.backend.constant.UserConstant;
 import com.yibi.backend.exception.BusinessException;
 import com.yibi.backend.exception.ThrowUtils;
+import com.yibi.backend.manager.RateLimiterManager;
 import com.yibi.backend.model.dto.chart.ChartAddRequest;
 import com.yibi.backend.model.dto.chart.ChartEditRequest;
 import com.yibi.backend.model.dto.chart.ChartUpdateRequest;
@@ -17,14 +19,18 @@ import com.yibi.backend.model.dto.chatglm.ChatGLMResponse;
 import com.yibi.backend.model.dto.chatglm.ChatHistory;
 import com.yibi.backend.model.entity.Chart;
 import com.yibi.backend.model.entity.User;
+import com.yibi.backend.model.enums.ChartStateEnum;
 import com.yibi.backend.model.vo.ChartVO;
-import com.yibi.backend.rabbitmq.MyMessageProducer;
+import com.yibi.backend.init.rabbitmq.MyMessageProducer;
 import com.yibi.backend.service.ChartService;
 import com.yibi.backend.service.ChatGLMService;
 import com.yibi.backend.service.UserService;
 import com.yibi.backend.utils.ExcelUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RRateLimiter;
+import org.redisson.api.RateIntervalUnit;
+import org.redisson.api.RateType;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -36,7 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * 帖子接口
@@ -48,6 +54,10 @@ import java.util.concurrent.Executors;
 @RequestMapping("/chart")
 @Slf4j
 public class ChartController {
+
+    @Resource
+    private RateLimiterManager rateLimiterManager;
+
     @Resource
     private MyMessageProducer myMessageProducer;
 
@@ -95,6 +105,9 @@ public class ChartController {
 
     @Resource
     private ChatGLMService chatGLMService;
+
+    @Resource
+    private ThreadPoolExecutor threadPoolExecutor;
 
     private final static Gson GSON = new Gson();
 
@@ -188,10 +201,10 @@ public class ChartController {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
         User loginUser = userService.getLoginUser(request);
-        if(loginUser == null) {
+        if (loginUser == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        if(!Objects.equals(loginUser.getId(), chart.getUserId())) {
+        if (!Objects.equals(loginUser.getId(), chart.getUserId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "不可访问他人数据");
         }
         return ResultUtils.success(chartService.getChartVO(chart, request));
@@ -237,10 +250,14 @@ public class ChartController {
     @PostMapping("/add")
     public BaseResponse<Long> addChart(@RequestPart("file") MultipartFile multipartFile,
                                        ChartAddRequest chartAddRequest, HttpServletRequest request) {
+
         User loginUser = userService.getLoginUser(request);
         if (loginUser == null || loginUser.getId() < 0) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
         }
+        // 限流
+        rateLimiterManager.doRateLimiter("Rlimiter_" + loginUser.getId());
+
         String goal = chartAddRequest.getGoal();
         String chartType = chartAddRequest.getChartType();
         String title = chartAddRequest.getTitle();
@@ -256,7 +273,7 @@ public class ChartController {
         chart.setGoal(goal);
         chart.setTitle(title);
         chart.setChartType(chartType);
-        chart.setIsFinished(0);
+        chart.setIsFinished(ChartStateEnum.CHART_WAITING.getValue());
         chart.setUserId(loginUser.getId());
         chart.setChartData(csvRes);
         boolean save = chartService.save(chart);
@@ -280,8 +297,8 @@ public class ChartController {
         // 1. 生成图表代码
         chatGLMRequest.setHistory(chatHistoryList);
 
-        myMessageProducer.sendMessage("yibi_exchange", "yibi_routingKey", GSON.toJson(chatGLMRequest));
-       /* CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> {
+        // myMessageProducer.sendMessage("yibi_exchange", "yibi_routingKey", GSON.toJson(chatGLMRequest));
+        CompletableFuture.runAsync(() -> {
 
             String responseFromGLM1 = chatGLMService.getResponseFromGLM(chatGLMRequest);
 
@@ -314,14 +331,12 @@ public class ChartController {
 
             chart.setGenText(chatGLMResponse2.getText());
             chart.setGenCode(code);
-            chart.setChatHistoryList(chatHistoryList);
+            chart.setChatHistoryList(GSON.toJson(chatHistoryList));
             chart.setUserId(loginUser.getId());
-            chart.setIsFinished(1);
+            chart.setIsFinished(ChartStateEnum.CHART_FINISHED.getValue());
 
             chartService.updateById(chart);
-            return null; // 返回一个空值，因为异步逻辑不产生结果
-        }, Executors.newCachedThreadPool());
-*/
+        }, threadPoolExecutor);
         return ResultUtils.success(chart.getId());
     }
 }

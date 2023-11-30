@@ -13,6 +13,7 @@ import com.yibi.backend.model.dto.chart.ChartEsDTO;
 import com.yibi.backend.model.dto.chart.ChartQueryRequest;
 import com.yibi.backend.model.entity.Chart;
 import com.yibi.backend.model.entity.User;
+import com.yibi.backend.model.enums.ChartStateEnum;
 import com.yibi.backend.model.vo.ChartVO;
 import com.yibi.backend.model.vo.UserVO;
 import com.yibi.backend.service.ChartService;
@@ -213,7 +214,7 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
         if (!userService.isAdmin(request)) {
             chartVO.setChatHistoryList(null);
         }
-        if (StringUtils.isEmpty(chartVO.getChartType()) || chartVO.getChartType().length() == 0) {
+        if (StringUtils.isEmpty(chartVO.getChartType()) || chartVO.getChartType().length() == 0 || Objects.equals(chartVO.getChartType(), "null") || Objects.equals(chartVO.getChartType(), "undefined")) {
             chartVO.setChartType("自定");
         }
         return chartVO;
@@ -244,7 +245,7 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
             if (!userService.isAdmin(request)) {
                 chartVO.setChatHistoryList(null);
             }
-            if (StringUtils.isEmpty(chartVO.getChartType()) || chartVO.getChartType().length() == 0) {
+            if (StringUtils.isEmpty(chartVO.getChartType()) || chartVO.getChartType().length() == 0 || Objects.equals(chartVO.getChartType(), "null") || Objects.equals(chartVO.getChartType(), "undefined")) {
                 chartVO.setChartType("自定");
             }
             return chartVO;
@@ -253,6 +254,17 @@ public class ChartServiceImpl extends ServiceImpl<ChartMapper, Chart> implements
         return chartVOPage;
     }
 
+    @Override
+    public List<Chart> getChartsFailedAfter(long milli) {
+        Date currentTime = new Date();
+        Date fiveMinutesAgo = new Date(currentTime.getTime() - milli); // 5分钟前的时间
+
+        QueryWrapper<Chart> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("isFinished", ChartStateEnum.CHART_WAITING);
+        queryWrapper.le("createTime", fiveMinutesAgo);
+
+        return this.list(queryWrapper);
+    }
 }
 
 

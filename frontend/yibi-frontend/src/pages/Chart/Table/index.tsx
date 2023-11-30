@@ -1,3 +1,4 @@
+import { chartStateOptions } from '@/components/Entity/Enum/ChartStateEnum';
 import { listObjectByPageUsingPost } from '@/services/yibi-frontend/searchController';
 import { useModel } from '@@/exports';
 import { useEmotionCss } from '@ant-design/use-emotion-css';
@@ -95,6 +96,20 @@ const ChartTable: React.FC = () => {
       render: (text, record) => <span>{moment(text).format('YYYY-MM-DD')}</span>,
     },
     {
+      title: '状态',
+      dataIndex: '',
+      key: 'title',
+      render: (text, record) => {
+        if (record.isFinished === chartStateOptions.finished) {
+          return <span style={{ color: 'green' }}>分析完毕</span>;
+        } else if (record.isFinished === chartStateOptions.waiting) {
+          return <span style={{ color: 'orange' }}>正在分析</span>;
+        } else {
+          return <span style={{ color: 'firebrick' }}>分析失败</span>;
+        }
+      },
+    },
+    {
       title: '操作',
       dataIndex: '',
       key: 'title',
@@ -107,13 +122,15 @@ const ChartTable: React.FC = () => {
           >
             重新进行分析
           </Button>
-          <Button
-            type="primary"
-            onClick={() => handleGoToCase(record.id || '0')}
-            style={{ marginLeft: 20, marginRight: 20 }}
-          >
-            查看分析结果
-          </Button>
+          {record.isFinished !== 2 ? (
+            <Button
+              type="primary"
+              onClick={() => handleGoToCase(record.id || '0')}
+              style={{ marginLeft: 20, marginRight: 20 }}
+            >
+              查看分析结果
+            </Button>
+          ) : null}
         </div>
       ),
     },
