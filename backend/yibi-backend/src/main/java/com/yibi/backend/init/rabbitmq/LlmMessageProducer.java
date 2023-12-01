@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 
 @Component
-public class MyMessageProducer {
+public class LlmMessageProducer {
     @Resource
     private RabbitTemplate rabbitTemplate;
 

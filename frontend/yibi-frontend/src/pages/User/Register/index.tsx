@@ -11,6 +11,7 @@ import { Alert, message, Tabs } from 'antd';
 import React, { useState } from 'react';
 import { Link } from 'umi';
 import Settings from '../../../../config/defaultSettings';
+import MyMenu from "@/pages/MyMenu";
 
 const Lang = () => {
   const langClassName = useEmotionCss(({ token }) => {
@@ -82,6 +83,7 @@ const Login: React.FC = () => {
   const { status, type: loginType } = userLoginState;
   return (
     <div className={containerClassName}>
+      <MyMenu />
       <Helmet>
         <title>
           {'注册'}- {Settings.title}

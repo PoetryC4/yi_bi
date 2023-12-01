@@ -139,6 +139,7 @@ const ChartResult: React.FC = () => {
           subTitle="你可以重新进行分析或返回图标列表"
           extra={[
             <Button
+              key="copy"
               type="primary"
               onClick={() => handleCopyCase()}
               style={{ marginLeft: 20, marginRight: 20 }}
@@ -146,6 +147,7 @@ const ChartResult: React.FC = () => {
               重新进行分析
             </Button>,
             <Button
+              key="table"
               type="primary"
               onClick={() => handleGoToTable()}
               style={{ marginLeft: 20, marginRight: 20 }}
@@ -167,9 +169,22 @@ const ChartResult: React.FC = () => {
               }}
               loading={!chartVals}
               extra={
-                <Button type="primary" onClick={handleCopyCase}>
-                  重新进行分析
-                </Button>
+                <div>
+                  <Button
+                    type="primary"
+                    onClick={() => handleCopyCase()}
+                    style={{ marginLeft: 10, marginRight: 10 }}
+                  >
+                    重新进行分析
+                  </Button>
+                  <Button
+                    type="primary"
+                    onClick={() => handleGoToTable()}
+                    style={{ marginLeft: 10, marginRight: 10 }}
+                  >
+                    返回我的列表
+                  </Button>
+                </div>
               }
             >
               <Title level={3}>分析需求</Title>

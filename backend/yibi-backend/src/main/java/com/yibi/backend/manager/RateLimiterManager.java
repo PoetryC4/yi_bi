@@ -17,8 +17,11 @@ public class RateLimiterManager {
     @Resource
     private RedissonClient redissonClient;
 
+    private final static Long maxPermits = 100L;
+
     /**
      * 根据userId
+     *
      * @param key
      */
     public void doRateLimiter(String key) {
@@ -27,7 +30,10 @@ public class RateLimiterManager {
 
         rateLimiter.trySetRate(RateType.OVERALL, 1, 10, RateIntervalUnit.SECONDS);
 
-        boolean acquire = rateLimiter.tryAcquire(1L);
+        long availablePermits = rateLimiter.availablePermits();
+
+        // 保证最大值为 maxPermits
+        boolean acquire = rateLimiter.tryAcquire(Math.max(1L, availablePermits - maxPermits));
 
         ThrowUtils.throwIf(!acquire, new BusinessException(ErrorCode.TOO_MANY_REQUEST));
     }

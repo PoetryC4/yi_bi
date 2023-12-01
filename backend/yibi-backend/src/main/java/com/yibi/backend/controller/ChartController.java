@@ -6,7 +6,6 @@ import com.yibi.backend.common.BaseResponse;
 import com.yibi.backend.common.DeleteRequest;
 import com.yibi.backend.common.ErrorCode;
 import com.yibi.backend.common.ResultUtils;
-import com.yibi.backend.config.ThreadPoolConfig;
 import com.yibi.backend.constant.UserConstant;
 import com.yibi.backend.exception.BusinessException;
 import com.yibi.backend.exception.ThrowUtils;
@@ -15,22 +14,18 @@ import com.yibi.backend.model.dto.chart.ChartAddRequest;
 import com.yibi.backend.model.dto.chart.ChartEditRequest;
 import com.yibi.backend.model.dto.chart.ChartUpdateRequest;
 import com.yibi.backend.model.dto.chatglm.ChatGLMRequest;
-import com.yibi.backend.model.dto.chatglm.ChatGLMResponse;
 import com.yibi.backend.model.dto.chatglm.ChatHistory;
 import com.yibi.backend.model.entity.Chart;
 import com.yibi.backend.model.entity.User;
 import com.yibi.backend.model.enums.ChartStateEnum;
 import com.yibi.backend.model.vo.ChartVO;
-import com.yibi.backend.init.rabbitmq.MyMessageProducer;
+import com.yibi.backend.init.rabbitmq.LlmMessageProducer;
 import com.yibi.backend.service.ChartService;
 import com.yibi.backend.service.ChatGLMService;
 import com.yibi.backend.service.UserService;
 import com.yibi.backend.utils.ExcelUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.redisson.api.RRateLimiter;
-import org.redisson.api.RateIntervalUnit;
-import org.redisson.api.RateType;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -41,7 +36,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -59,7 +53,7 @@ public class ChartController {
     private RateLimiterManager rateLimiterManager;
 
     @Resource
-    private MyMessageProducer myMessageProducer;
+    private LlmMessageProducer llmMessageProducer;
 
     @Value("${llm.model-name}")
     private String modelName;
@@ -240,7 +234,7 @@ public class ChartController {
     }
 
     /**
-     * 文件上传
+     * 添加图表
      *
      * @param multipartFile
      * @param chartAddRequest
@@ -297,8 +291,8 @@ public class ChartController {
         // 1. 生成图表代码
         chatGLMRequest.setHistory(chatHistoryList);
 
-        // myMessageProducer.sendMessage("yibi_exchange", "yibi_routingKey", GSON.toJson(chatGLMRequest));
-        CompletableFuture.runAsync(() -> {
+        llmMessageProducer.sendMessage("yibi_exchange", "yibi_routingKey", GSON.toJson(chatGLMRequest));
+        /*CompletableFuture.runAsync(() -> {
 
             String responseFromGLM1 = chatGLMService.getResponseFromGLM(chatGLMRequest);
 
@@ -336,7 +330,7 @@ public class ChartController {
             chart.setIsFinished(ChartStateEnum.CHART_FINISHED.getValue());
 
             chartService.updateById(chart);
-        }, threadPoolExecutor);
+        }, threadPoolExecutor);*/
         return ResultUtils.success(chart.getId());
     }
 }

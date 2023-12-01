@@ -3,13 +3,14 @@ import { listObjectByPageUsingPost } from '@/services/yibi-frontend/searchContro
 import { useModel } from '@@/exports';
 import { useEmotionCss } from '@ant-design/use-emotion-css';
 import { history } from '@umijs/max';
-import { Button, Divider, Input, message, Pagination } from 'antd';
+import { Button, Divider, Input, message, Pagination, Result } from 'antd';
 import Paragraph from 'antd/es/typography/Paragraph';
 import Title from 'antd/es/typography/Title';
 import { Table } from 'antd/lib';
 import { ColumnsType } from 'antd/lib/table';
 import moment from 'moment';
 import React, { useEffect, useState } from 'react';
+import MyMenu from "@/pages/MyMenu";
 
 const handleCopyCase = (chartId: string) => {
   history.push(`/chart/add?copy=${chartId}`);
@@ -111,6 +112,7 @@ const ChartTable: React.FC = () => {
     },
     {
       title: '操作',
+      width: 400,
       dataIndex: '',
       key: 'title',
       render: (text, record) => (
@@ -137,6 +139,7 @@ const ChartTable: React.FC = () => {
   ];
   return (
     <div className={chartTableClass}>
+      <MyMenu />
       <div
         style={{
           width: '60%',
@@ -159,11 +162,19 @@ const ChartTable: React.FC = () => {
               <p style={{ margin: 0 }}>
                 {
                   <div>
-                    <Title level={4}>分析需求</Title>
-                    <Paragraph>{record.goal}</Paragraph>
-                    <Divider />
-                    <Title level={4}>结论文字</Title>
-                    <Paragraph>{record.genText || '结论文字'}</Paragraph>
+                    {record.isFinished !== chartStateOptions.failed ? (
+                      <div>
+                        <Title level={4}>分析需求</Title>
+                        <Paragraph>{record.goal}</Paragraph>
+                        <Divider />
+                        <Title level={4}>结论文字</Title>
+                        <Paragraph>{record.genText || '结论文字'}</Paragraph>
+                      </div>
+                    ) : (
+                      <div>
+                        <Result status="error" title="分析失败" subTitle="请尝试重新分析"></Result>
+                      </div>
+                    )}
                   </div>
                 }
               </p>

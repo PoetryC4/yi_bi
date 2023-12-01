@@ -19,6 +19,7 @@ import {listObjectByPageUsingPost} from "@/services/yibi-frontend/searchControll
 import {Link} from "umi";
 import {getFakeCaptcha} from "@/services/ant-design-pro/login";
 import {getLoginUserUsingGet, userLoginUsingPost} from "@/services/yibi-frontend/userController";
+import MyMenu from "@/pages/MyMenu";
 
 const ActionIcons = () => {
   const langClassName = useEmotionCss(({ token }) => {
@@ -129,6 +130,7 @@ const Login: React.FC = () => {
   const { status, type: loginType } = userLoginState;
   return (
     <div className={containerClassName}>
+      <MyMenu />
       <Helmet>
         <title>
           {'登录'}- {Settings.title}

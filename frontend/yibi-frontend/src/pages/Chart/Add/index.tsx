@@ -10,6 +10,7 @@ import { history } from '@umijs/max';
 import { Button, Form, Image, Input, message, Select, Upload } from 'antd';
 import Title from 'antd/es/typography/Title';
 import React, { useEffect, useState } from 'react';
+import MyMenu from "@/pages/MyMenu";
 
 const layout = {
   labelCol: { span: 8 },
@@ -96,6 +97,7 @@ const ChartAdd: React.FC = () => {
   };
   return (
     <div className={chartAddClass}>
+      <MyMenu />
       <div
         style={{
           display: 'flex',
